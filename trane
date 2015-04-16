@@ -1,0 +1,142 @@
+#!/usr/bin/env groovy
+import groovy.text.SimpleTemplateEngine
+
+import groovy.util.ConfigSlurper
+import groovy.util.CliBuilder
+import groovy.util.OptionAccessor
+
+/*
+ * Sample tree
+ *
+[
+    [
+        name: 'admin',
+        type: 'folder',
+        children: [
+            [
+                name: 'login.png',
+                type: 'file'
+            ],
+            [
+                name: 'admin.png',
+                type: 'file'
+            ]
+        ]
+    ],
+    [
+        name: 'user.png',
+        type: 'file'
+    ]
+]
+ *
+ */
+
+
+OptionAccessor getOptions(String[] args) {
+    CliBuilder cli = new CliBuilder(
+        usage: 'trane -p [PATH] -t [TEMPLATE] -o [OUTPUT]',
+        header: 'Options:'
+    )
+
+    cli.t(longOpt: 'template', args: 1, argName: 'template', required: false, 'Template directory. The default is "templates/basic"')
+    cli.p(longOpt: 'path', args: 1, argName: 'path', required: true, 'The path of the images')
+    cli.o(longOpt: 'output', args: 1, argName: 'output', required: false, 'Output directory. It will be created if it doesn\'t exist')
+    cli.c(longOpt: 'config', args: 1, argName: 'config', required: true, 'Config file')
+
+    OptionAccessor options = cli.parse(args)
+    if (!options) {
+        throw new RuntimeException('Options parser fail')
+    }
+
+    return options
+}
+
+
+File getPath(String pathString) {
+    File path = new File(pathString)
+
+    if (!path.exists() || !path.isDirectory()) {
+        throw new RuntimeException("Invalid path ${pathString}")
+    }
+
+    return path
+}
+
+
+// instead of map, return node
+// node has method "as map" to generate the map for the binding
+Node buildFileTree(File baseDirectory) {
+    // read directory files
+    // sort them
+    // process each
+    //   if file, compose node
+    //   if directory, backtrack
+}
+
+
+// other properties are read from the args or from config file
+// or from both?
+// METHOD TO READ OTHER PROPERTIES if necesary
+
+// build binding map
+//    uses tree.asMap()
+
+
+// check if template exists
+File getTemplate(String templatePath) {
+    File template = new File(templatePath)
+
+    if (!template || !template.isFile()) {
+        throw new RuntimeException("The template ${templatePath} does not exist")
+    }
+
+    return template
+}
+
+
+// check if binding has all the properties it needs
+void checkBinding(Map binding) {
+    Closure validProperty = { property, value ->
+        value as Boolean  // incomplete
+    }
+
+    binding.each { property, value ->
+        if (!validProperty(property, value)) {
+            throw new RuntimeException("Invalid value ${value} for property ${property}")
+        }
+    }
+}
+
+
+String renderTemplate(File template, Map binding) {
+    SimpleTemplateEngine engine = new SimpleTemplateEngine()
+
+    return engine.createTemplate(template.texe).make(binding)
+}
+
+
+Map readConfig(String configPath) {
+    File configFile = new File(configPath)
+
+    if (!configFile.exists() || !configFile.isFile()) {
+        throw new RuntimeException("The config file ${configPath} doesn't exist")
+    }
+
+    try {
+        ConfigSlurper slurper = new ConfigSlurper()
+        return slurper.parse(configFile.toURL()).flatten()
+    } catch (Exception e) {
+        throw new RuntimeException('Invalid config file')
+    }
+}
+
+
+OptionAccessor options = getOptions(args)
+
+println options.arguments()
+return
+
+File template = getTemplate(options.template ?: 'templates/basic')
+File path = getPath(options.path)
+Node tree = buildFileTree(path)
+Map binding = buildBindingMap(tree as Map)
