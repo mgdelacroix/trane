@@ -111,7 +111,7 @@ void checkBinding(Map binding) {
 String renderTemplate(File template, Map binding) {
     SimpleTemplateEngine engine = new SimpleTemplateEngine()
 
-    return engine.createTemplate(template.texe).make(binding)
+    return engine.createTemplate(template.text).make(binding)
 }
 
 
